@@ -1,0 +1,51 @@
+import random
+
+
+def main():
+	picks = ["rock", "paper", "scissors"]
+	print("Let's play a game.")
+	player_score = 0
+	program_score = 0
+	while True:
+		pick = input("Type in your pick: ")
+		pick = pick.lower()
+		if pick not in picks:
+			print("choose rock, paper or scissors, not some random gibberish :)")
+		a = random.randint(0, 2)
+		response = picks[a]
+		print("The program picked " + f"{response}")
+
+		if pick == response:
+			print("Draw! No points given!")
+		elif pick == "rock":
+			if response == "scissors":
+				print("You score!")
+				player_score += 1
+			elif response == "paper":
+				print("You lose! Try again!")
+				program_score += 1
+		elif pick == "paper":
+			if response == "rock":
+				print("You score!")
+				player_score += 1
+			elif response == "scissors":
+				print("You lose! Try again!")
+				program_score += 1
+		elif pick == "scissors":
+			if response == "paper":
+				print("You score!")
+				player_score += 1
+			elif response == "rock":
+				print("You lose! Try again!")
+				program_score += 1
+
+		if player_score == 3:
+			print('You have won! Congratulations!')
+			break
+		elif program_score == 3:
+			print("You lost! Better luck next time!")
+			break
+
+
+if __name__ == '__main__':
+	main()
