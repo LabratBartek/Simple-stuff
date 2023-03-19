@@ -1,0 +1,8 @@
+#needs to be in .streamlit folder in the same directory as the main file. Basically some styling
+
+[theme]
+primaryColor ="#E694FF"
+backgroundColor = "#00172B"
+secondaryBackgroundColor = "#0083B7"
+textColor = "#FFF"
+font = "sans serif"
