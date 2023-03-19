@@ -1,0 +1,110 @@
+import streamlit as st  
+import requests
+import json
+import pandas as pd                    
+import matplotlib.pyplot as plt  
+import seaborn as sns			  
+
+
+def main():
+	#Set currencies, times, etc
+	currencies = ["USD", "GBP", "EUR", "CHF", "DKK", "NOK", "SEK", "JPY", "HUF", "RUR", "UAH", "TRL", "ROL", "HRK", "BGN", "CZK", "Gold"]
+	times = ["7 days", "10 days", "30 days"]
+	time = {"7 days": 7, "10 days": 10, "30 days": 30,}
+	
+	#Get current price for the top bar currencies
+	def get_price(X):
+		data = requests.request("GET", f"http://api.nbp.pl/api/exchangerates/rates/a/{X}/")
+		data_json = json.loads(data.text)
+		price = data_json["rates"][0]["mid"]
+		return price
+
+	#Get delta
+	def get_delta(currency):
+			url = f"http://api.nbp.pl/api/exchangerates/rates/a/{currency}/last/2/?format=json"
+			response = requests.request("GET", url)
+			data = json.loads(response.text)
+			df = pd.DataFrame(data=data["rates"])
+			difference = round(float(df["mid"].iloc[-1]) - float(df["mid"].iloc[-2]), 4)
+			return difference
+		
+
+	#Configure page layout
+	st.set_page_config(page_title="Currency checker", layout="wide")
+	st.markdown("<p style='text-align: center; font-size: 48px; font-family: Arial; color: white;'>Currency Checker</p>", unsafe_allow_html=True)
+	st.markdown("###")
+	
+	#Hide streamlit styling
+	hide_style = "<style> #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;} </style>"
+	st.markdown(hide_style, unsafe_allow_html=True )
+
+	#Configure sidebar
+	st.sidebar.header("Please filter here:")
+	currency = st.sidebar.selectbox("Select currency:", options=currencies)
+	timeselect = st.sidebar.selectbox("Select timespread:", options=times)
+
+	#Get correct Json and make a dataframe out of it
+	if currency == "Gold":
+		url = f"http://api.nbp.pl/api/cenyzlota/last/{time[timeselect]}/?format=json"
+		response = requests.request("GET", url)
+		data = json.loads(response.text)
+		df = pd.DataFrame(data=data)
+		x = "data"
+		y = "cena"
+	else:
+		url = f"http://api.nbp.pl/api/exchangerates/rates/a/{currency}/last/{time[timeselect]}/?format=json"
+		response = requests.request("GET", url)
+		data = json.loads(response.text)
+		df = pd.DataFrame(data=data["rates"])
+		x = "effectiveDate"
+		y = "mid"
+
+	#Add some content
+	left, central, right = st.columns(3)
+	with central:
+		#Get EUR metric
+		st.metric(label='GBP', value = get_price("GBP"), delta = get_delta('GBP'))
+		st.markdown("###")
+		#Create a chart showing rate changes in last 7/10/30 days
+		st.set_option('deprecation.showPyplotGlobalUse', False) #This bit suppresses pyplot warning
+		chart = sns.lineplot(data=df, x=x, y=y)
+		chart.set(xlabel="Time", ylabel="PLN")
+		plt.xticks(rotation=90)
+		st.pyplot()
+	with right:
+		#Get CHF metric
+		st.metric(label='CHF', value = get_price("CHF"), delta = get_delta('CHF'))
+		st.markdown("###")
+		#Exchange currency to PLN
+		amount = st.text_input("Enter desired amount: ", value=0)
+		amount = int(amount)
+		if currency == "Gold":
+			output = amount * float(df["cena"].iloc[-1])
+		else:
+			output = amount * float(df["mid"].iloc[-1])
+		st.text(str(output) + " " + "PLN")
+
+		#Exchange PLN to desired currency
+		exchange = st.text_input("Enter amount to exchange: ", value=0)
+		exchange = int(exchange)
+		if currency == "Gold":
+			output = exchange / float(df["cena"].iloc[-1])
+		else:
+			output = exchange / float(df["mid"].iloc[-1])
+		st.text(str(output) + " " + currency)
+	with left:
+		#Get USD metric
+		st.metric(label='USD', value = get_price("USD"), delta = get_delta('USD'))
+		st.markdown("###")
+		#display current mid exchange rate, show changes in the last 24 hours
+		if currency == "Gold":
+			difference = round(float(df["cena"].iloc[-1]) - float(df["cena"].iloc[-2]), 4)
+			st.metric(label="Gold", value = df["cena"].iloc[-1], delta=difference)
+		else:
+			difference = round(float(df["mid"].iloc[-1]) - float(df["mid"].iloc[-2]), 4)
+			st.metric(label=str(currency), value = df["mid"].iloc[-1], delta=difference)
+		
+
+
+if __name__ == '__main__':
+	main()
